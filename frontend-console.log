@@ -1,0 +1,6 @@
+[warning] cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+[log] [fixture] stream POST #1 (warming)
+[log] [fixture] stream POST #2 (warming)
+[log] [fixture] stream POST #3 (warming)
+[warning] cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+[log] [fixture] stream POST #1 (credits)
