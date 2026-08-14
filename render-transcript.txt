@@ -1,0 +1,8 @@
+before upstream-502: HTTP 502 retry-after=(none)
+before timeout-abort: HTTP 503 retry-after=(none)
+before unexpected-404: HTTP 502 retry-after=(none)
+before malformed-2xx: HTTP 502 retry-after=(none)
+after upstream-502: HTTP 502 retry-after=60
+after timeout-abort: HTTP 503 retry-after=60
+after unexpected-404: HTTP 502 retry-after=(none)
+after malformed-2xx: HTTP 502 retry-after=(none)
