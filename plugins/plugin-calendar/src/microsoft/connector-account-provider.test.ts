@@ -209,6 +209,20 @@ async function startReadFlow(harness: Harness) {
   return flow;
 }
 
+async function expectProviderCompletionFailure(
+  completion: Promise<unknown>,
+  providerCode: string,
+): Promise<void> {
+  const failure = await completion.then(
+    () => null,
+    (error: unknown) => error,
+  );
+  expect(failure).toMatchObject({
+    code: "CONNECTOR_OAUTH_COMPLETION_FAILED",
+    cause: { code: providerCode },
+  });
+}
+
 describe("Microsoft connector account provider", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -299,15 +313,14 @@ describe("Microsoft connector account provider", () => {
     });
     const flow = await startReadFlow(harness);
 
-    await expect(
+    await expectProviderCompletionFailure(
       harness.manager.completeOAuth("microsoft", {
         state: flow.state,
         code: "authorization-code",
         query: { state: flow.state },
       }),
-    ).rejects.toMatchObject({
-      code: "MICROSOFT_OAUTH_SCOPE_ESCALATION",
-    });
+      "MICROSOFT_OAUTH_SCOPE_ESCALATION",
+    );
     expect(await harness.storage.listAccounts("microsoft")).toEqual([]);
     expect(harness.vault.size).toBe(0);
   });
@@ -334,15 +347,14 @@ describe("Microsoft connector account provider", () => {
       const flow = await startReadFlow(harness);
       harness.fetchMock.mockImplementationOnce(async () => response());
 
-      await expect(
+      await expectProviderCompletionFailure(
         harness.manager.completeOAuth("microsoft", {
           state: flow.state,
           code: "authorization-code",
           query: { state: flow.state },
         }),
-      ).rejects.toMatchObject({
-        code: "MICROSOFT_OAUTH_TOKEN_RESPONSE_INVALID",
-      });
+        "MICROSOFT_OAUTH_TOKEN_RESPONSE_INVALID",
+      );
       expect(await harness.storage.listAccounts("microsoft")).toEqual([]);
       expect(harness.vault.size).toBe(0);
     },
@@ -500,15 +512,14 @@ describe("Microsoft connector account provider", () => {
     const flow = await startReadFlow(harness);
     harness.setReturnedNonce("different-nonce");
 
-    await expect(
+    await expectProviderCompletionFailure(
       harness.manager.completeOAuth("microsoft", {
         state: flow.state,
         code: "authorization-code",
         query: { state: flow.state },
       }),
-    ).rejects.toMatchObject({
-      code: "MICROSOFT_OAUTH_NONCE_MISMATCH",
-    });
+      "MICROSOFT_OAUTH_NONCE_MISMATCH",
+    );
     expect(await harness.storage.listAccounts("microsoft")).toEqual([]);
     expect(harness.refs).toEqual([]);
     expect(harness.vault.size).toBe(0);
@@ -538,15 +549,14 @@ describe("Microsoft connector account provider", () => {
     });
     harness.setReturnedNonce(String(flow.metadata?.nonce));
 
-    await expect(
+    await expectProviderCompletionFailure(
       harness.manager.completeOAuth("microsoft", {
         state: flow.state,
         code: "authorization-code",
         query: { state: flow.state },
       }),
-    ).rejects.toMatchObject({
-      code: "MICROSOFT_OAUTH_ACCOUNT_IDENTITY_MISMATCH",
-    });
+      "MICROSOFT_OAUTH_ACCOUNT_IDENTITY_MISMATCH",
+    );
     expect(harness.vault.size).toBe(0);
     expect(harness.refs).toEqual([]);
     expect(
@@ -558,15 +568,14 @@ describe("Microsoft connector account provider", () => {
     const harness = createHarness({ secretBackend: false });
     const flow = await startReadFlow(harness);
 
-    await expect(
+    await expectProviderCompletionFailure(
       harness.manager.completeOAuth("microsoft", {
         state: flow.state,
         code: "authorization-code",
         query: { state: flow.state },
       }),
-    ).rejects.toMatchObject({
-      code: "MICROSOFT_SECRET_WRITER_UNAVAILABLE",
-    });
+      "MICROSOFT_SECRET_WRITER_UNAVAILABLE",
+    );
     const accounts = await harness.storage.listAccounts("microsoft");
     expect(accounts).toHaveLength(1);
     expect(accounts[0]?.status).toBe("pending");
