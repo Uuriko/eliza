@@ -49,6 +49,15 @@ const QUICK_CONTEXT_DOCUMENTS_THRESHOLD = 0.2;
 
 const MEMORY_BROWSE_DEFAULT_LIMIT = 50;
 const MEMORY_BROWSE_MAX_LIMIT = 200;
+/** Smallest per-table adapter page for the browse/feed drain. */
+const MEMORY_BROWSE_MIN_PAGE = 200;
+/**
+ * Extra rows a table may be scanned past the requested page before the drain
+ * stops and the response marks its total incomplete. Bounds the in-process
+ * work of a filter the adapter cannot apply (entity, empty text, multi-term
+ * keyword) without ever capping an unfiltered deep offset.
+ */
+const MEMORY_BROWSE_SCAN_SLACK = 10_000;
 const MEMORY_FEED_DEFAULT_LIMIT = 50;
 const MEMORY_FEED_MAX_LIMIT = 100;
 const MEMORY_TABLE_NAMES = [
@@ -351,54 +360,83 @@ function hasBrowsableContent(memory: TaggedMemory): boolean {
   return typeof text === "string" && text.trim().length > 0;
 }
 
-async function fetchMemoriesFromTables(
+/**
+ * Read newest-first rows from each table, in growing offset windows, until the
+ * table has yielded `need` rows that pass every filter or has no rows left.
+ * Filters the adapter supports (`roomId`, `end`, `textContains`) are pushed
+ * down; the rest (`entityIds` — the adapter treats `entityId` as RLS context
+ * only — empty text, `before`, `accept`) are applied here, which is why the
+ * scan must keep going instead of trusting a fixed over-fetch window (#22061).
+ *
+ * Each table's newest `need` kept rows are enough for any newest-first page
+ * ending at `need`, so the caller may merge, sort and slice. `exhausted` is
+ * true only when every table ran dry, in which case the returned count is
+ * exact. A table that neither ran dry nor reached `need` within
+ * `MEMORY_BROWSE_SCAN_SLACK` extra rows stops early; callers must then report
+ * the count as incomplete rather than exact.
+ */
+async function drainMemoriesFromTables(
   runtime: AgentRuntime,
   params: {
     entityIds?: UUID[];
     roomId?: UUID;
     tables?: readonly string[];
-    limit?: number;
     before?: number;
+    textContains?: string;
+    accept?: (memory: TaggedMemory) => boolean;
+    need: number;
   },
-): Promise<TaggedMemory[]> {
+): Promise<{ memories: TaggedMemory[]; exhausted: boolean }> {
   const tables = params.tables ?? MEMORY_TABLE_NAMES;
-  const perTableLimit = Math.max(
-    Math.ceil((params.limit ?? MEMORY_BROWSE_DEFAULT_LIMIT) * 2),
-    200,
-  );
-  // Read every table concurrently — they are independent queries, and a
-  // sequential loop would make the feed's first paint wait on N round-trips.
-  // Promise.all preserves input order, so the flattened result is order-stable.
-  const perTableMemories = await Promise.all(
+  const entityIds = params.entityIds?.length
+    ? new Set<string>(params.entityIds)
+    : null;
+  const before = params.before;
+  const scanCap = params.need + MEMORY_BROWSE_SCAN_SLACK;
+  const keep = (m: TaggedMemory): boolean =>
+    hasBrowsableContent(m) &&
+    (entityIds === null || (!!m.entityId && entityIds.has(m.entityId))) &&
+    (before === undefined || memoryCreatedAt(m) < before) &&
+    (params.accept === undefined || params.accept(m));
+
+  // Tables are independent queries; read them concurrently. Promise.all
+  // preserves input order, so the flattened result is order-stable.
+  const perTable = await Promise.all(
     tables.map(async (tableName) => {
-      const memories = await runtime.getMemories({
-        agentId: runtime.agentId as UUID,
-        roomId: params.roomId,
-        tableName,
-        limit: perTableLimit,
-        includeEmbedding: false, // browse feed discards embeddings (memoryToBrowseItem)
-      });
-      return memories.map((m) => Object.assign(m, { _table: tableName }));
+      const kept: TaggedMemory[] = [];
+      let scanned = 0;
+      let pageLimit = Math.max(params.need, MEMORY_BROWSE_MIN_PAGE);
+      while (kept.length < params.need) {
+        const limit = Math.min(pageLimit, scanCap - scanned);
+        if (limit <= 0) return { kept, exhausted: false };
+        const rows = await runtime.getMemories({
+          agentId: runtime.agentId as UUID,
+          roomId: params.roomId,
+          tableName,
+          limit,
+          offset: scanned,
+          // `end` is inclusive; `before` is exclusive at millisecond precision.
+          end: before === undefined ? undefined : before - 1,
+          textContains: params.textContains,
+          includeEmbedding: false, // browse feed discards embeddings (memoryToBrowseItem)
+        });
+        scanned += rows.length;
+        for (const row of rows) {
+          const tagged = Object.assign(row, { _table: tableName });
+          if (keep(tagged)) kept.push(tagged);
+        }
+        if (rows.length < limit) return { kept, exhausted: true };
+        // Double the window (never re-reading the prefix) so a sparse filter
+        // converges in O(log n) round-trips instead of O(n) fixed pages.
+        pageLimit *= 2;
+      }
+      return { kept, exhausted: false };
     }),
   );
-  const allMemories: TaggedMemory[] = perTableMemories.flat();
-
-  // The DB adapter ignores entityId in getMemories (used only for RLS
-  // context). Post-filter here so person-centric views actually work.
-  const entitySet = params.entityIds;
-  let filtered = allMemories;
-  if (entitySet && entitySet.length > 0) {
-    const ids = new Set<string>(entitySet);
-    filtered = allMemories.filter((m) => m.entityId && ids.has(m.entityId));
-  }
-
-  filtered = filtered.filter(hasBrowsableContent);
-
-  const beforeTs = params.before;
-  if (beforeTs !== undefined) {
-    return filtered.filter((m) => memoryCreatedAt(m) < beforeTs);
-  }
-  return filtered;
+  return {
+    memories: perTable.flatMap((t) => t.kept),
+    exhausted: perTable.every((t) => t.exhausted),
+  };
 }
 
 /**
@@ -591,11 +629,10 @@ export async function handleMemoryRoutes(
     }
     const tables = tableFilter.tables;
 
-    const allMemories = await fetchMemoriesFromTables(runtime, {
-      tables,
-      limit: limit * 2,
-      before,
-    });
+    const { memories: allMemories, exhausted } = await drainMemoriesFromTables(
+      runtime,
+      { tables, before, need: limit + 1 },
+    );
 
     allMemories.sort(byNewestFirst);
     const items = allMemories.slice(0, limit).map(memoryToBrowseItem);
@@ -604,7 +641,9 @@ export async function handleMemoryRoutes(
       memories: items,
       count: items.length,
       limit,
-      hasMore: allMemories.length > limit,
+      // Honest even when the drain stopped short: rows we never looked at
+      // may still be browsable, so only a dry table set can say "no more".
+      hasMore: allMemories.length > limit || !exhausted,
     });
     return true;
   }
@@ -639,29 +678,39 @@ export async function handleMemoryRoutes(
         ? [entityIdParam as UUID]
         : undefined;
 
-    const allMemories = await fetchMemoriesFromTables(runtime, {
-      tables,
-      entityIds,
-      roomId: roomIdParam ? (roomIdParam as UUID) : undefined,
-      limit: limit + offset + 100,
-    });
+    // A single-term query is exactly the adapter's case-insensitive substring
+    // predicate, so push it down; multi-term queries keep matchesKeyword's
+    // any-term semantics and are filtered here (matchesKeyword still runs on
+    // every row either way).
+    const textContains =
+      searchQuery && !/\s/.test(searchQuery) ? searchQuery : undefined;
+    const { memories: filtered, exhausted } = await drainMemoriesFromTables(
+      runtime,
+      {
+        tables,
+        entityIds,
+        roomId: roomIdParam ? (roomIdParam as UUID) : undefined,
+        textContains,
+        accept: searchQuery
+          ? (m) =>
+              matchesKeyword(
+                (m.content as { text?: string } | undefined)?.text ?? "",
+                searchQuery,
+              )
+          : undefined,
+        need: offset + limit + 1,
+      },
+    );
 
-    allMemories.sort(byNewestFirst);
-
-    let filtered = allMemories;
-    if (searchQuery) {
-      filtered = allMemories.filter((m) => {
-        const text = (m.content as { text?: string } | undefined)?.text ?? "";
-        return matchesKeyword(text, searchQuery);
-      });
-    }
-
-    const total = filtered.length;
+    filtered.sort(byNewestFirst);
     const page = filtered.slice(offset, offset + limit).map(memoryToBrowseItem);
 
     json(res, {
       memories: page,
-      total,
+      // Exact when every table was read to the end; otherwise a lower bound
+      // that still exceeds offset+limit whenever this page was filled.
+      total: filtered.length,
+      totalIsExact: exhausted,
       limit,
       offset,
     });
@@ -706,14 +755,12 @@ export async function handleMemoryRoutes(
     }
     const tables = tableFilter.tables;
 
-    const allMemories = await fetchMemoriesFromTables(runtime, {
-      entityIds,
-      tables,
-      limit: limit + offset + 100,
-    });
+    const { memories: allMemories, exhausted } = await drainMemoriesFromTables(
+      runtime,
+      { entityIds, tables, need: offset + limit + 1 },
+    );
 
     allMemories.sort(byNewestFirst);
-    const total = allMemories.length;
     const page = allMemories
       .slice(offset, offset + limit)
       .map(memoryToBrowseItem);
@@ -721,7 +768,8 @@ export async function handleMemoryRoutes(
     json(res, {
       entityId: primaryEntityId,
       memories: page,
-      total,
+      total: allMemories.length,
+      totalIsExact: exhausted,
       limit,
       offset,
     });
