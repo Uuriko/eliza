@@ -1,0 +1,33 @@
+2026-08-20T17:07:27.693Z [console:desktop] debug [vite] connecting...
+2026-08-20T17:07:27.756Z [console:desktop] debug [vite] connected.
+2026-08-20T17:07:28.099Z [console:desktop] info %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+2026-08-20T17:07:28.194Z [flow:desktop] loaded http://localhost:5199/profile/edit with eliza_app_session token set
+2026-08-20T17:07:28.609Z [network:desktop] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:07:28.610Z [network:desktop] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:07:31.613Z [console:desktop] warning The resource http://localhost:5199/eliza-logo.webp was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-08-20T17:07:43.607Z [console:desktop] error [Auth] Failed to fetch user info: TimeoutError: signal timed out
+2026-08-20T17:07:43.608Z [network:desktop] FAILED http://127.0.0.1:47331/api/eliza-app/user/me :: net::ERR_ABORTED
+2026-08-20T17:07:43.615Z [console:desktop] error [Auth] Failed to fetch user info: TimeoutError: signal timed out
+2026-08-20T17:07:43.616Z [network:desktop] FAILED http://127.0.0.1:47331/api/eliza-app/user/me :: net::ERR_ABORTED
+2026-08-20T17:07:44.558Z [console:desktop] warning THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+2026-08-20T17:07:45.403Z [console:desktop] warning [.WebGL-0xd740014fc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+2026-08-20T17:07:45.931Z [console:desktop] warning [.WebGL-0xd740014fc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+2026-08-20T17:07:46.492Z [console:desktop] warning [.WebGL-0xd740014fc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+2026-08-20T17:07:47.054Z [console:desktop] warning [.WebGL-0xd740014fc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+2026-08-20T17:07:48.099Z [console:desktop] warning The resource http://localhost:5199/eliza-logo.webp was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-08-20T17:07:48.197Z [flow:desktop] t=21446ms url=http://localhost:5199/get-started?returnTo=%2Fprofile%2Fedit
+2026-08-20T17:07:49.588Z [flow:desktop] visible text:  HomeAnywhere you want her to be.Pick where you want to talk to Eliza.TelegramiMessageWhatsAppDiscordSolana WalletElizaCloud Inc. 2026 
+2026-08-20T17:07:55.558Z [console:mobile] debug [vite] connecting...
+2026-08-20T17:07:55.612Z [console:mobile] debug [vite] connected.
+2026-08-20T17:07:55.996Z [console:mobile] info %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+2026-08-20T17:07:56.082Z [flow:mobile] loaded http://localhost:5199/profile/edit with eliza_app_session token set
+2026-08-20T17:07:56.451Z [network:mobile] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:07:56.451Z [network:mobile] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:07:59.451Z [console:mobile] warning The resource http://localhost:5199/eliza-logo.webp was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-08-20T17:08:11.445Z [console:mobile] error [Auth] Failed to fetch user info: TimeoutError: signal timed out
+2026-08-20T17:08:11.451Z [network:mobile] FAILED http://127.0.0.1:47331/api/eliza-app/user/me :: net::ERR_ABORTED
+2026-08-20T17:08:11.456Z [console:mobile] error [Auth] Failed to fetch user info: TimeoutError: signal timed out
+2026-08-20T17:08:11.459Z [network:mobile] FAILED http://127.0.0.1:47331/api/eliza-app/user/me :: net::ERR_ABORTED
+2026-08-20T17:08:14.957Z [console:mobile] warning The resource http://localhost:5199/eliza-logo.webp was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-08-20T17:08:16.086Z [flow:mobile] t=20637ms url=http://localhost:5199/get-started?returnTo=%2Fprofile%2Fedit
+2026-08-20T17:08:16.126Z [flow:mobile] visible text:  HomeAnywhere you want her to be.Pick where you want to talk to Eliza.TelegramiMessageWhatsAppDiscordSolana WalletElizaCloud Inc. 2026 

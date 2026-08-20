@@ -1,0 +1,18 @@
+2026-08-20T17:06:36.198Z [console:desktop] debug [vite] connecting...
+2026-08-20T17:06:36.219Z [console:desktop] debug [vite] connected.
+2026-08-20T17:06:36.560Z [console:desktop] info %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+2026-08-20T17:06:36.658Z [flow:desktop] loaded http://localhost:5199/profile/edit with eliza_app_session token set
+2026-08-20T17:06:37.155Z [network:desktop] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:06:37.156Z [network:desktop] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:06:40.158Z [console:desktop] warning The resource http://localhost:5199/eliza-logo.webp was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-08-20T17:06:56.689Z [flow:desktop] t=22047ms url=http://localhost:5199/profile/edit
+2026-08-20T17:06:56.744Z [flow:desktop] visible text:  Opening payout profile…Sign in is required. We’ll bring you back here afterward. 
+2026-08-20T17:06:57.122Z [console:mobile] debug [vite] connecting...
+2026-08-20T17:06:57.183Z [console:mobile] debug [vite] connected.
+2026-08-20T17:06:57.515Z [console:mobile] info %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+2026-08-20T17:06:57.599Z [flow:mobile] loaded http://localhost:5199/profile/edit with eliza_app_session token set
+2026-08-20T17:06:57.959Z [network:mobile] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:06:57.960Z [network:mobile] -> GET http://127.0.0.1:47331/api/eliza-app/user/me
+2026-08-20T17:07:00.959Z [console:mobile] warning The resource http://localhost:5199/eliza-logo.webp was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+2026-08-20T17:07:17.612Z [flow:mobile] t=20619ms url=http://localhost:5199/profile/edit
+2026-08-20T17:07:17.667Z [flow:mobile] visible text:  Opening payout profile…Sign in is required. We’ll bring you back here afterward. 
